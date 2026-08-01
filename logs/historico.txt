@@ -2,3 +2,4 @@
 [31/07/2026 13:43:27] BACKUP EXCLUÍDO - Zomboid_Backup_2026-07-31_13-42-49.rar
 [31/07/2026 13:44:30] BACKUP CRIADO - Multiplayer | servertest2 | Zomboid_Backup_2026-07-31_13-44-20.rar | 13.13 MB
 [31/07/2026 13:45:21] BACKUP RESTAURADO - servertest2 | Zomboid_Backup_2026-07-31_13-44-20.rar
+[31/07/2026 22:09:56] BACKUP CRIADO - Single-player | Sandbox • 2026-07-31_18-50-46 | Zomboid_Backup_2026-07-31_22-09-55.tar.gz | 5.31 MB

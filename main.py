@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import sys
 import customtkinter as ctk
 
 from gui import ZomboidBackupApp
+from settings import CONFIG_PADRAO, carregar_configuracoes
 
 
 class TelaDeAbertura(ctk.CTk):
@@ -56,13 +58,13 @@ class TelaDeAbertura(ctk.CTk):
         self.barra.pack()
         self.barra.start()
 
-        carregando = ctk.CTkLabel(
+        self.carregando = ctk.CTkLabel(
             painel,
-            text="Carregando seus backups...",
+            text="Detectando sistema operacional...",
             font=("Segoe UI", 12),
             text_color="#788191",
         )
-        carregando.pack(pady=(12, 0))
+        self.carregando.pack(pady=(12, 0))
 
         autor = ctk.CTkLabel(
             painel,
@@ -72,6 +74,7 @@ class TelaDeAbertura(ctk.CTk):
         )
         autor.pack(side="bottom", pady=20)
 
+        self.after(600, self._detectar_sistema)
         self.after(2200, self.abrir_programa)
 
     def centralizar_janela(self) -> None:
@@ -87,6 +90,17 @@ class TelaDeAbertura(ctk.CTk):
         self.geometry(
             f"{largura}x{altura}+{posicao_x}+{posicao_y}"
         )
+
+    def _detectar_sistema(self) -> None:
+        nome = "Linux" if sys.platform != "win32" else "Windows"
+        self.carregando.configure(text=f"Sistema detectado: {nome}")
+        self.after(700, self._detectar_pasta_saves)
+
+    def _detectar_pasta_saves(self) -> None:
+        config = carregar_configuracoes()
+        pasta = config["pasta_saves"]
+        self.carregando.configure(text=f"Pasta de saves: {pasta}")
+        self.after(700, lambda: self.carregando.configure(text="Carregando seus backups..."))
 
     def abrir_programa(self) -> None:
         self.barra.stop()

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 import threading
 import time
 from datetime import datetime
@@ -215,12 +216,20 @@ class ZomboidBackupApp(ctk.CTk):
             self.abrir_historico,
         )
 
+        plataforma = "🐧 Linux" if sys.platform != "win32" else "🪟 Windows"
+        ctk.CTkLabel(
+            lateral,
+            text=plataforma,
+            font=("Segoe UI", 9),
+            text_color="#4a5260",
+        ).pack(side="bottom", pady=(0, 4))
+
         ctk.CTkLabel(
             lateral,
             text="Versão 4.0\nby BooDoSnes",
             font=("Segoe UI", 9),
             text_color="#697180",
-        ).pack(side="bottom", pady=20)
+        ).pack(side="bottom", pady=(20, 0))
 
     def criar_botao_lateral(
         self,
@@ -480,8 +489,10 @@ class ZomboidBackupApp(ctk.CTk):
             return []
 
         self.destino.mkdir(parents=True, exist_ok=True)
+        padrao = "Zomboid_Backup_*.rar" if sys.platform == "win32" else "Zomboid_Backup_*.tar.gz"
+
         return sorted(
-            self.destino.glob("Zomboid_Backup_*.rar"),
+            self.destino.glob(padrao),
             key=lambda arquivo: arquivo.stat().st_mtime,
             reverse=True,
         )

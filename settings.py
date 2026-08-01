@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -8,10 +9,23 @@ from typing import Any
 PASTA_CONFIG = Path(__file__).resolve().parent / "config"
 ARQUIVO_CONFIG = PASTA_CONFIG / "settings.json"
 
+
+def _pasta_desktop_padrao() -> Path:
+    if sys.platform == "win32":
+        return Path.home() / "Desktop"
+
+    for candidato in ("Desktop", "Área de Trabalho", "Escritorio"):
+        pasta = Path.home() / candidato
+        if pasta.is_dir():
+            return pasta
+
+    return Path.home() / "Desktop"
+
+
 CONFIG_PADRAO = {
     "pasta_saves": str(Path.home() / "Zomboid" / "Saves"),
     "destino_base": str(
-        Path.home() / "Desktop" / "Backups Project Zomboid"
+        _pasta_desktop_padrao() / "Backups Project Zomboid"
     ),
     "max_backups": 2,
     "ultimo_mundo": "",
@@ -36,6 +50,22 @@ def carregar_configuracoes() -> dict[str, Any]:
             dados["destino_base"] = dados["destino"]
 
         configuracoes.update(dados)
+
+        alterado = False
+        for chave in ("pasta_saves", "destino_base"):
+            caminho = configuracoes.get(chave, "")
+            e_caminho_windows = len(caminho) > 1 and caminho[1] == ":"
+            if sys.platform != "win32" and e_caminho_windows:
+                configuracoes[chave] = CONFIG_PADRAO[chave]
+                alterado = True
+            elif sys.platform == "win32" and caminho.startswith("/"):
+                configuracoes[chave] = CONFIG_PADRAO[chave]
+                alterado = True
+
+        if alterado:
+            configuracoes["ultimo_mundo"] = ""
+            salvar_configuracoes(configuracoes)
+
         return configuracoes
 
     except (json.JSONDecodeError, OSError):

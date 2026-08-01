@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import subprocess
+import sys
 from pathlib import Path
 
 
@@ -19,37 +20,52 @@ def formatar_tamanho(bytes_total: int) -> str:
 
 def abrir_pasta(caminho: Path) -> None:
     caminho.mkdir(parents=True, exist_ok=True)
-    os.startfile(str(caminho))
+
+    if sys.platform == "win32":
+        os.startfile(str(caminho))
+    else:
+        subprocess.Popen(["xdg-open", str(caminho)])
 
 
 def abrir_jogo() -> None:
-    subprocess.Popen(
-        ["cmd", "/c", "start", "", "steam://rungameid/108600"],
-        creationflags=subprocess.CREATE_NO_WINDOW,
-    )
+    if sys.platform == "win32":
+        subprocess.Popen(
+            ["cmd", "/c", "start", "", "steam://rungameid/108600"],
+            creationflags=subprocess.CREATE_NO_WINDOW,
+        )
+    else:
+        subprocess.Popen(["xdg-open", "steam://rungameid/108600"])
 
 
 def jogo_esta_aberto() -> bool:
-    processo = subprocess.run(
-        ["tasklist"],
-        capture_output=True,
-        text=True,
-        creationflags=subprocess.CREATE_NO_WINDOW,
-    )
-
-    lista = processo.stdout.lower()
-
-    nomes_possiveis = (
-        "projectzomboid64.exe",
-        "projectzomboid32.exe",
-        "projectzomboid.exe",
-        "zuluplatformx64architecture.exe",
-    )
-
-
-
-
-    return any(nome in lista for nome in nomes_possiveis)
+    if sys.platform == "win32":
+        processo = subprocess.run(
+            ["tasklist"],
+            capture_output=True,
+            text=True,
+            creationflags=subprocess.CREATE_NO_WINDOW,
+        )
+        lista = processo.stdout.lower()
+        nomes_possiveis = (
+            "projectzomboid64.exe",
+            "projectzomboid32.exe",
+            "projectzomboid.exe",
+            "zuluplatformx64architecture.exe",
+        )
+        return any(nome in lista for nome in nomes_possiveis)
+    else:
+        processo = subprocess.run(
+            ["ps", "aux"],
+            capture_output=True,
+            text=True,
+        )
+        lista = processo.stdout.lower()
+        nomes_possiveis = (
+            "projectzomboid64",
+            "projectzomboid32",
+            "projectzomboid",
+        )
+        return any(nome in lista for nome in nomes_possiveis)
 from datetime import datetime
 
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import shutil
 import subprocess
+import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Callable, Iterable
@@ -24,6 +25,19 @@ def localizar_winrar() -> Path | None:
 
     encontrado = shutil.which("WinRAR.exe")
     return Path(encontrado) if encontrado else None
+
+
+def localizar_tar() -> Path | None:
+    encontrado = shutil.which("tar")
+    return Path(encontrado) if encontrado else None
+
+
+def _extensao_backup() -> str:
+    return ".rar" if sys.platform == "win32" else ".tar.gz"
+
+
+def _glob_backups() -> str:
+    return "Zomboid_Backup_*.rar" if sys.platform == "win32" else "Zomboid_Backup_*.tar.gz"
 
 
 def validar_pastas(raiz: Path, pastas: Iterable[str]) -> tuple[str, ...]:
@@ -49,7 +63,7 @@ def validar_pastas(raiz: Path, pastas: Iterable[str]) -> tuple[str, ...]:
 
 def apagar_backups_antigos(destino: Path, max_backups: int) -> None:
     backups = sorted(
-        destino.glob("Zomboid_Backup_*.rar"),
+        destino.glob(_glob_backups()),
         key=lambda arquivo: arquivo.stat().st_mtime,
         reverse=True,
     )
@@ -67,6 +81,67 @@ def formatar_tamanho(bytes_total: int) -> str:
         tamanho /= 1024
 
     return f"{bytes_total} B"
+
+
+def _criar_backup_windows(
+    winrar: Path,
+    raiz: Path,
+    nomes: tuple[str, ...],
+    arquivo_backup: Path,
+) -> None:
+    comando = [
+        str(winrar),
+        "a",
+        "-r",
+        "-ep1",
+        "-m5",
+        "-y",
+        "-idq",
+        str(arquivo_backup),
+        *nomes,
+    ]
+
+    processo = subprocess.run(
+        comando,
+        cwd=raiz,
+        capture_output=True,
+        text=True,
+        creationflags=subprocess.CREATE_NO_WINDOW,
+    )
+
+    if processo.returncode not in (0, 1):
+        erro = processo.stderr.strip() or processo.stdout.strip()
+        raise RuntimeError(
+            f"O WinRAR não conseguiu criar o backup.\n\n{erro}"
+        )
+
+
+def _criar_backup_linux(
+    tar: Path,
+    raiz: Path,
+    nomes: tuple[str, ...],
+    arquivo_backup: Path,
+) -> None:
+    comando = [
+        str(tar),
+        "-czf",
+        str(arquivo_backup),
+        "-C",
+        str(raiz),
+        *nomes,
+    ]
+
+    processo = subprocess.run(
+        comando,
+        capture_output=True,
+        text=True,
+    )
+
+    if processo.returncode != 0:
+        erro = processo.stderr.strip() or processo.stdout.strip()
+        raise RuntimeError(
+            f"O tar não conseguiu criar o backup.\n\n{erro}"
+        )
 
 
 def criar_backup(
@@ -90,51 +165,41 @@ def criar_backup(
     progresso(5, "Verificando as pastas do mundo...")
     nomes = validar_pastas(raiz, pastas)
 
-    progresso(15, "Procurando o WinRAR...")
-    winrar = localizar_winrar()
-
-    if winrar is None:
-        raise FileNotFoundError(
-            "O WinRAR não foi encontrado.\n\n"
-            "Verifique se ele está instalado em:\n"
-            "C:\\Program Files\\WinRAR"
-        )
-
-    progresso(25, "Preparando a pasta de destino...")
     destino.mkdir(parents=True, exist_ok=True)
-
     data_hora = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    arquivo_backup = destino / f"Zomboid_Backup_{data_hora}.rar"
+    extensao = _extensao_backup()
+    arquivo_backup = destino / f"Zomboid_Backup_{data_hora}{extensao}"
 
-    progresso(35, "Compactando o mundo com o WinRAR...")
+    if sys.platform == "win32":
+        progresso(15, "Procurando o WinRAR...")
+        winrar = localizar_winrar()
 
-    comando = [
-        str(winrar),
-        "a",
-        "-r",
-        "-ep1",
-        "-m5",
-        "-y",
-        "-idq",
-        str(arquivo_backup),
-        *nomes,
-    ]
+        if winrar is None:
+            raise FileNotFoundError(
+                "O WinRAR não foi encontrado.\n\n"
+                "Verifique se ele está instalado em:\n"
+                "C:\\Program Files\\WinRAR"
+            )
 
-    processo = subprocess.run(
-        comando,
-        cwd=raiz,
-        capture_output=True,
-        text=True,
-        creationflags=subprocess.CREATE_NO_WINDOW,
-    )
+        progresso(25, "Preparando a pasta de destino...")
+        progresso(35, "Compactando o mundo com o WinRAR...")
+        _criar_backup_windows(winrar, raiz, nomes, arquivo_backup)
+
+    else:
+        progresso(15, "Procurando o tar...")
+        tar = localizar_tar()
+
+        if tar is None:
+            raise FileNotFoundError(
+                "O 'tar' não foi encontrado no sistema.\n\n"
+                "Instale-o com: sudo apt install tar"
+            )
+
+        progresso(25, "Preparando a pasta de destino...")
+        progresso(35, "Compactando o mundo com tar...")
+        _criar_backup_linux(tar, raiz, nomes, arquivo_backup)
 
     progresso(82, "Verificando o arquivo criado...")
-
-    if processo.returncode not in (0, 1):
-        erro = processo.stderr.strip() or processo.stdout.strip()
-        raise RuntimeError(
-            f"O WinRAR não conseguiu criar o backup.\n\n{erro}"
-        )
 
     if not arquivo_backup.exists():
         raise RuntimeError("O arquivo de backup não foi criado.")

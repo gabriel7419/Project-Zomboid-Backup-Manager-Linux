@@ -1,6 +1,6 @@
 {
-    "pasta_saves": "C:\\Users\\USUÁRIO\\Zomboid\\Saves",
-    "destino_base": "C:\\Users\\USUÁRIO\\Documents\\Servidor Zomboid Backup",
+    "pasta_saves": "/home/gabrielp/Zomboid/Saves",
+    "destino_base": "/home/gabrielp/Desktop/Backups Project Zomboid",
     "max_backups": 2,
-    "ultimo_mundo": "multiplayer|Multiplayer|servertest2"
+    "ultimo_mundo": "single|Sandbox|2026-07-31_18-50-46"
 }

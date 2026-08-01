@@ -3,13 +3,72 @@ from __future__ import annotations
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
 from datetime import datetime
 from pathlib import Path
 from typing import Callable, Iterable
 
-from backup import criar_backup, localizar_winrar
+from backup import criar_backup, localizar_winrar, localizar_tar
 from utils import jogo_esta_aberto
+
+
+def _extrair_backup(
+    arquivo: Path,
+    destino_extracao: Path,
+) -> None:
+    if sys.platform == "win32":
+        winrar = localizar_winrar()
+        if winrar is None:
+            raise FileNotFoundError("O WinRAR não foi encontrado.")
+
+        processo = subprocess.run(
+            [
+                str(winrar),
+                "x",
+                "-y",
+                "-idq",
+                str(arquivo),
+                str(destino_extracao) + os.sep,
+            ],
+            capture_output=True,
+            text=True,
+            creationflags=subprocess.CREATE_NO_WINDOW,
+        )
+
+        if processo.returncode not in (0, 1):
+            erro = processo.stderr.strip() or processo.stdout.strip()
+            raise RuntimeError(
+                "O WinRAR não conseguiu extrair o backup.\n\n"
+                f"{erro}"
+            )
+
+    else:
+        tar = localizar_tar()
+        if tar is None:
+            raise FileNotFoundError(
+                "O 'tar' não foi encontrado no sistema.\n\n"
+                "Instale-o com: sudo apt install tar"
+            )
+
+        processo = subprocess.run(
+            [
+                str(tar),
+                "-xzf",
+                str(arquivo),
+                "-C",
+                str(destino_extracao),
+            ],
+            capture_output=True,
+            text=True,
+        )
+
+        if processo.returncode != 0:
+            erro = processo.stderr.strip() or processo.stdout.strip()
+            raise RuntimeError(
+                "O tar não conseguiu extrair o backup.\n\n"
+                f"{erro}"
+            )
 
 
 def restaurar_backup(
@@ -47,11 +106,16 @@ def restaurar_backup(
             "O arquivo de backup selecionado não foi encontrado."
         )
 
-    progresso(15, "Procurando o WinRAR...")
-    winrar = localizar_winrar()
-
-    if winrar is None:
-        raise FileNotFoundError("O WinRAR não foi encontrado.")
+    progresso(15, "Verificando compressor disponível...")
+    if sys.platform == "win32":
+        if localizar_winrar() is None:
+            raise FileNotFoundError("O WinRAR não foi encontrado.")
+    else:
+        if localizar_tar() is None:
+            raise FileNotFoundError(
+                "O 'tar' não foi encontrado no sistema.\n\n"
+                "Instale-o com: sudo apt install tar"
+            )
 
     raiz.mkdir(parents=True, exist_ok=True)
     pasta_backups.mkdir(parents=True, exist_ok=True)
@@ -84,28 +148,9 @@ def restaurar_backup(
     temporaria = Path(tempfile.mkdtemp(prefix="ZomboidRestore_"))
 
     try:
-        processo = subprocess.run(
-            [
-                str(winrar),
-                "x",
-                "-y",
-                "-idq",
-                str(arquivo_backup),
-                str(temporaria) + os.sep,
-            ],
-            capture_output=True,
-            text=True,
-            creationflags=subprocess.CREATE_NO_WINDOW,
-        )
+        _extrair_backup(arquivo_backup, temporaria)
 
         progresso(72, "Validando os arquivos extraídos...")
-
-        if processo.returncode not in (0, 1):
-            erro = processo.stderr.strip() or processo.stdout.strip()
-            raise RuntimeError(
-                "O WinRAR não conseguiu extrair o backup.\n\n"
-                f"{erro}"
-            )
 
         faltando = [
             nome for nome in nomes
@@ -142,7 +187,6 @@ def restaurar_backup(
             backup_seguranca=seguranca,
             raiz=raiz,
             pastas=nomes,
-            winrar=winrar,
         )
         raise
 
@@ -154,27 +198,11 @@ def _recuperar_seguranca(
     backup_seguranca: Path,
     raiz: Path,
     pastas: tuple[str, ...],
-    winrar: Path,
 ) -> None:
     temporaria = Path(tempfile.mkdtemp(prefix="ZomboidRecovery_"))
 
     try:
-        processo = subprocess.run(
-            [
-                str(winrar),
-                "x",
-                "-y",
-                "-idq",
-                str(backup_seguranca),
-                str(temporaria) + os.sep,
-            ],
-            capture_output=True,
-            text=True,
-            creationflags=subprocess.CREATE_NO_WINDOW,
-        )
-
-        if processo.returncode not in (0, 1):
-            return
+        _extrair_backup(backup_seguranca, temporaria)
 
         for nome in pastas:
             origem = temporaria / nome
@@ -187,6 +215,9 @@ def _recuperar_seguranca(
                 shutil.rmtree(destino)
 
             shutil.copytree(origem, destino)
+
+    except Exception:
+        pass
 
     finally:
         shutil.rmtree(temporaria, ignore_errors=True)
