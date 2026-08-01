@@ -1,17 +1,18 @@
 from __future__ import annotations
 
+import shutil
 import sys
 import threading
 import time
 from datetime import datetime
 from pathlib import Path
 from tkinter import filedialog, messagebox
-import shutil
+
 import customtkinter as ctk
 
 from backup import criar_backup
 from restore import restaurar_backup
-from settings import carregar_configuracoes, salvar_configuracoes
+from settings import carregar_configuracoes, salvar_configuracoes, _base_dir
 from utils import abrir_jogo, abrir_pasta, formatar_tamanho, registrar_historico
 from worlds import Mundo, detectar_mundos, encontrar_mundo, filtrar_mundos
 
@@ -30,7 +31,7 @@ class ZomboidBackupApp(ctk.CTk):
         self.destino = self.destino_base
         self.backup_selecionado: Path | None = None
 
-        self.pasta_logs = Path(__file__).resolve().parent / "logs"
+        self.pasta_logs = _base_dir() / "logs"
         self.operacao_em_andamento = False
         self.notificacao_atual: ctk.CTkFrame | None = None
 

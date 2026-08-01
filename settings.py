@@ -6,7 +6,13 @@ from pathlib import Path
 from typing import Any
 
 
-PASTA_CONFIG = Path(__file__).resolve().parent / "config"
+def _base_dir() -> Path:
+    if getattr(sys, "frozen", False):
+        return Path(sys.executable).resolve().parent
+    return Path(__file__).resolve().parent
+
+
+PASTA_CONFIG = _base_dir() / "config"
 ARQUIVO_CONFIG = PASTA_CONFIG / "settings.json"
 
 
