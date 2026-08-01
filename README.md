@@ -28,48 +28,6 @@ Baixe a versão mais recente na página de **Releases**.
 
 ---
 
-## 🐧 Linux
-
-### Executar pelo código-fonte
-
-```bash
-# 1. Instalar dependência do sistema (Arch)
-sudo pacman -S tk
-
-# 2. Criar o ambiente virtual e instalar dependências
-python3 -m venv .venv
-.venv/bin/pip install -r requirements.txt
-
-# 3. Rodar
-.venv/bin/python3 main.py
-```
-
-### Gerar um executável
-
-```bash
-# 1. Instalar o PyInstaller no ambiente virtual
-.venv/bin/pip install pyinstaller
-
-# 2. Gerar o executável
-.venv/bin/pyinstaller \
-    --onefile \
-    --name "ZomboidBackupManager" \
-    --add-data "assets:assets" \
-    --hidden-import customtkinter \
-    --hidden-import darkdetect \
-    --hidden-import PIL \
-    --clean \
-    --noconfirm \
-    main.py
-
-# 3. O executável estará em:
-# dist/ZomboidBackupManager
-```
-
-> **Nota:** o executável gerado é específico para Linux x86-64 e não requer Python instalado.
-
----
-
 ## 👨‍💻 Desenvolvedor
 
 **BooDoSnes**
